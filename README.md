@@ -2,6 +2,12 @@
 
 A tool to quickly quality control an arbitrary list of images using web browser for UI
 
+## Installing
+You need cherrypy package, to install it in your own user reposutory (without sudo access): `pip install cherrypy --user`
+or `easy_install --user cherrypy` , then unpack source directory or run `git clone https://github.com/vfonov/wqc.git` 
+and add the location to your PATH, or specify full path to `wqt.py` script when running
+
+
 ## Command line arguments
 
 * `--csv <file.csv` - provide file for storing information, existing QC information will be loaded on startup
