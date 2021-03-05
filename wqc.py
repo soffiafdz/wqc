@@ -2,6 +2,7 @@
 
 import cherrypy
 from cherrypy import process
+from cherrypy.lib.static import serve_file
 
 import argparse
 import os
@@ -22,18 +23,17 @@ try:
 except:
     pass
 
-from io import StringIO
-
+#import StringIO
 
 class SaveInfo(process.plugins.SimplePlugin):
     def __init__(self, bus, objs):
         self.servings = []
         process.plugins.SimplePlugin.__init__(self, bus)
-        self.objs=objs
+        self.objs = objs
 
     def start(self):
         pass
-    start.priority = 80
+    #start.priority = 80
 
     def stop(self):
         for i in self.objs:
@@ -54,47 +54,44 @@ class dumb_object(object):
 class Img(object):
     def __init__(self,qc_files):
         self.qc_files=qc_files
-        self.tempdir = tempfile.mkdtemp(prefix='QC',dir=os.environ.get('TMPDIR',None))
-        pass
+        self.tempdir = tempfile.mkdtemp(prefix='QC', dir=os.environ.get('TMPDIR',None))
 
     def save_data(self):
         pass
 
     @cherrypy.expose
-    def index(self,name=None):
+    def index(self, name=None):
         if name is None:
             return "<!DOCTYPE html><html><body>Images will be here</body></html>"
         else:
             try:
                 #(img_name,img_ext)=name.rsplit('.',1)
                 finfo=self.qc_files[int(name)]
-
+                path=os.path.abspath(finfo[0])
                 if finfo[3]=='png':
-                    cherrypy.response.headers['Content-Type']= 'image/png'
-                    return open(finfo[0],'r')
+                    return serve_file(path,'image/png',None,None)
                 elif finfo[3]=='jpg':
-                    cherrypy.response.headers['Content-Type']= 'image/jpeg'
-                    return open(finfo[0],'r')
+                    return serve_file(path,'image/jpeg',None,None)
                 elif (finfo[3]=='mnc' or finfo[3]=='minc') and minc_supported:
                     # dynamically render minc here
                     img_file=self.tempdir+name+'.png'
                     if not os.path.exists(img_file):
                         qc(finfo[0],img_file,format='png')
-                    cherrypy.response.headers['Content-Type']= 'image/png'#svg+xml
-                    return open(img_file,'r')
+                    return serve_file(img_file,'image/png',None,None)
                 else:
                     cherrypy.response.status = 503
-                    return "Unsupprted image file format:{}".format(finfo[0])
-
+                    return "Unsupported image file format:{}".format(finfo[0])
             except:
                 print("Exception in index:{}".format(sys.exc_info()[0]))
                 traceback.print_exc(file=sys.stdout)
+                cherrypy.response.status = 503
                 return "<!DOCTYPE html><html><body>Image {} not found!</body></html>".format(name)
 
     def cleanup(self):
         if os.path.exists(self.tempdir):
             #print("Cleaning up tempdir:{}".format(self.tempdir))
             shutil.rmtree(self.tempdir)
+
 
 @cherrypy.popargs('name')
 class QC(object):
@@ -111,7 +108,7 @@ class QC(object):
                 # let's save to a separate csv file, and then update
                 temp_csv=self.csv+'.save'
 
-            with open(temp_csv, 'wb') as csvfile:
+            with open(temp_csv, 'w') as csvfile:
                 qcwriter = csv.writer(csvfile, delimiter=',',
                             quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
@@ -138,7 +135,7 @@ class QC(object):
                 item_id=int(item)
 
             self.qc_files[item_id][4]=q
-            print("{} - {}".format(self.qc_files[img_id][0],q))
+            print("{} - {}".format(self.qc_files[img_id][0], q))
 
         prev_id=""
         prev_str=""
@@ -277,13 +274,13 @@ if __name__ == '__main__':
                 if l<1 or l>3:
                     print("Unexpected row:{}".format(repr(row)))
                 else:
-                    qc_file=row[0]
-                    status=''
-                    note=''
+                    qc_file = row[0]
+                    status = ''
+                    note = ''
                     if l>1:
-                        status=row[1]
+                        status = row[1]
                     if l>2:
-                        note=row[2]
+                        note = row[2]
                     qc_files.append([qc_file,None,None,None,status,note])
         except IOError:
            pass # failed to read form csv file
@@ -298,7 +295,7 @@ if __name__ == '__main__':
                 # add new item
                 qc_files.append([i,None,None,None,'',''])
 
-    if len(qc_files)==0 :
+    if len(qc_files) == 0 :
         print("Refusing to start without input files!")
         print("Launch with --help")
         exit(1)
@@ -322,7 +319,6 @@ if __name__ == '__main__':
                 'tools.staticdir.dir': script_dir+'/js'
                 }
             }
-
         img_conf={'/': {
                 'tools.expires.on': True,
                 'tools.expires.secs':  30
@@ -339,10 +335,10 @@ if __name__ == '__main__':
                                      'log.access_file': None,
                                      'log.error_file': None} )
 
-        host_ip=cherrypy.config.get('server.socket_host','127.0.0.1')
-        port=cherrypy.config.get('server.socket_port','8080')
+        host_ip = cherrypy.config.get('server.socket_host','127.0.0.1')
+        port = cherrypy.config.get('server.socket_port','8080')
 
-        if host_ip=='0.0.0.0':
+        if host_ip == '0.0.0.0':
             host_ip=[ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1]
             print("Starting server on all public addresses:")
             for i in host_ip:
@@ -357,7 +353,7 @@ if __name__ == '__main__':
             qc_files[j][2]=name
             qc_files[j][3]=ext
 
-            if (ext=='mnc' or ext=='minc') and not minc_supported:
+            if ( ext == 'mnc' or ext == 'minc') and not minc_supported:
                 print("Warning: MINC files are not supported now, install ipl.minc_tools and ipl.minc_qc")
 
         qc_app=QC(qc_files,options.csv)
