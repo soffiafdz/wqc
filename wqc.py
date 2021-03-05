@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 import cherrypy
 from cherrypy import process
@@ -22,7 +22,7 @@ try:
 except:
     pass
 
-import StringIO
+from io import StringIO
 
 
 class SaveInfo(process.plugins.SimplePlugin):
@@ -30,16 +30,16 @@ class SaveInfo(process.plugins.SimplePlugin):
         self.servings = []
         process.plugins.SimplePlugin.__init__(self, bus)
         self.objs=objs
-        
+
     def start(self):
         pass
     start.priority = 80
-    
+
     def stop(self):
         for i in self.objs:
             i.save_data()
             i.cleanup()
-        
+
 
 class dumb_object(object):
     def __init__(self):
@@ -56,10 +56,10 @@ class Img(object):
         self.qc_files=qc_files
         self.tempdir = tempfile.mkdtemp(prefix='QC',dir=os.environ.get('TMPDIR',None))
         pass
-    
+
     def save_data(self):
         pass
-    
+
     @cherrypy.expose
     def index(self,name=None):
         if name is None:
@@ -68,7 +68,7 @@ class Img(object):
             try:
                 #(img_name,img_ext)=name.rsplit('.',1)
                 finfo=self.qc_files[int(name)]
-                
+
                 if finfo[3]=='png':
                     cherrypy.response.headers['Content-Type']= 'image/png'
                     return open(finfo[0],'r')
@@ -85,12 +85,12 @@ class Img(object):
                 else:
                     cherrypy.response.status = 503
                     return "Unsupprted image file format:{}".format(finfo[0])
-                
+
             except:
-                print "Exception in index:{}".format(sys.exc_info()[0])
+                print("Exception in index:{}".format(sys.exc_info()[0]))
                 traceback.print_exc(file=sys.stdout)
                 return "<!DOCTYPE html><html><body>Image {} not found!</body></html>".format(name)
-            
+
     def cleanup(self):
         if os.path.exists(self.tempdir):
             #print("Cleaning up tempdir:{}".format(self.tempdir))
@@ -102,26 +102,26 @@ class QC(object):
         # TODO: init here?
         self.qc_files=qc_files
         self.csv=csv
-    
+
     def save_data(self):
         if self.csv is not None:
             temp_csv=self.csv
-            
+
             if os.path.exists(self.csv):
                 # let's save to a separate csv file, and then update
                 temp_csv=self.csv+'.save'
-            
+
             with open(temp_csv, 'wb') as csvfile:
                 qcwriter = csv.writer(csvfile, delimiter=',',
                             quotechar='"', quoting=csv.QUOTE_MINIMAL)
-                
+
                 for f in self.qc_files:
                     qcwriter.writerow([f[0],f[4],f[5]])
-            
+
             # move filem, if it was properly saved
             if temp_csv!=self.csv:
                 shutil.move(temp_csv,self.csv)
-                
+
     @cherrypy.expose
     def index(self, name=None,q=None,item=None):
         if name is None:
@@ -130,42 +130,42 @@ class QC(object):
         else:
             _name=name
         img_id=int(_name)
-        
+
         if q is not None and (name is not None or item is not None):
             # user assigned a label
             item_id=img_id
             if item is not None:
                 item_id=int(item)
-                
+
             self.qc_files[item_id][4]=q
             print("{} - {}".format(self.qc_files[img_id][0],q))
-        
+
         prev_id=""
         prev_str=""
         next_id=""
         next_str=""
         img='/img/'+str(img_id)
         next_img=None
-        
-        
+
+
         if img_id>0:
             prev_id=img_id-1
             prev_str="<A href=\"/{}\" rel=\"prev\">Prev</A>".format(prev_id)
         else:
             prev_id=img_id
-            
-        if img_id<(len(self.qc_files)-1): 
+
+        if img_id<(len(self.qc_files)-1):
             next_id=img_id+1
             next_str="<A href=\"/{}\" rel=\"next\">Next</A>".format(next_id)
             next_img='/img/'+str(next_id)
         else:
             next_id=img_id
-            
+
         prefetch=""
         # try to prefetch next page
         if next_img is not None:
             prefetch+="<link rel=\"prefetch\" href=\"{img}\"><link rel=\"prefetch\" href=\"/{next_id}\">".format(img=next_img,next_id=next_id)
-        
+
         return """<!DOCTYPE html>
 <script type="text/javascript" src="/js/mousetrap.min.js"></script>
 <html>
@@ -218,7 +218,7 @@ class QC(object):
                 url_next='/'+str(next_id),
                 prefetch=prefetch
             )
-     
+
     def cleanup(self):
         pass
 
@@ -239,13 +239,13 @@ def parse_options():
                     dest="accept",
                     default=False,
                     help='Accept remote connections' )
-    
+
     parser.add_argument('--port',
                     dest="port",
                     default=8080,
                     type=int,
                     help='port to listen to' )
-    
+
     parser.add_argument('--csv',
                     dest="csv",
                     help='CSV file' )
@@ -304,13 +304,13 @@ if __name__ == '__main__':
         exit(1)
     else:
         main_conf={
-            '/': {  
+            '/': {
                 'tools.expires.on': True,
                 'tools.expires.secs':  30,
                 'tools.caching.on': False
                     }
             }
-        css_conf={    
+        css_conf={
             '/': {
                 'tools.staticdir.on': True,
                 'tools.staticdir.dir': script_dir+'/css'
@@ -323,25 +323,25 @@ if __name__ == '__main__':
                 }
             }
 
-        img_conf={'/': {  
+        img_conf={'/': {
                 'tools.expires.on': True,
                 'tools.expires.secs':  30
                         }
                     }
-        
+
         if options.accept:
-            cherrypy.config.update( {'server.socket_host': '0.0.0.0'} ) 
-        
+            cherrypy.config.update( {'server.socket_host': '0.0.0.0'} )
+
         cherrypy.config.update( {'server.socket_port': options.port } )
-        
+
         if not options.debug:
             cherrypy.config.update( {'log.screen': False,
                                      'log.access_file': None,
                                      'log.error_file': None} )
-        
+
         host_ip=cherrypy.config.get('server.socket_host','127.0.0.1')
         port=cherrypy.config.get('server.socket_port','8080')
-        
+
         if host_ip=='0.0.0.0':
             host_ip=[ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1]
             print("Starting server on all public addresses:")
@@ -349,17 +349,17 @@ if __name__ == '__main__':
                 print("\t{}:{}".format(i,port))
         else:
             print("Starting server on {}:{}".format(host_ip,port))
-        
+
         for j,i in enumerate( qc_files ):
             b=os.path.basename(i[0])
             (name,ext)=b.rsplit('.',1)
             qc_files[j][1]=b
             qc_files[j][2]=name
             qc_files[j][3]=ext
-            
+
             if (ext=='mnc' or ext=='minc') and not minc_supported:
                 print("Warning: MINC files are not supported now, install ipl.minc_tools and ipl.minc_qc")
-                
+
         qc_app=QC(qc_files,options.csv)
         img_app=Img(qc_files)
 
@@ -367,16 +367,16 @@ if __name__ == '__main__':
         #cherrypy.engine.scratchdb = ScratchDB(cherrypy.engine)
         save_info=SaveInfo(cherrypy.engine,[qc_app,img_app])
         save_info.subscribe()
-        
+
         cherrypy.tree.mount(qc_app,'/',main_conf)
         cherrypy.tree.mount(img_app,'/img',img_conf)
         cherrypy.tree.mount(dumb_object(),'/css',config=css_conf)
         cherrypy.tree.mount(dumb_object(),'/js',config=js_conf)
-        
+
         #cherrypy.engine.signals.subscribe()
         cherrypy.engine.start()
         print("Press Ctrl-C to exit and save csv file")
         #userInput = raw_input('Hit enter to quit')
         cherrypy.engine.block()
-        
+
 # kate: space-indent on; indent-width 4; indent-mode python;replace-tabs on;word-wrap-column 80

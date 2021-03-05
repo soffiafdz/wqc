@@ -1,11 +1,11 @@
-# WEB QC Tool 
+# WEB QC Tool
 
-A tool to quickly quality control an arbitrary list of images using web browser for UI
+A tool to quickly quality control an arbitrary list of images using web browser for UI.
 
 ## Installing
-You need cherrypy package, to install it in your own user reposutory (without sudo access): `pip install cherrypy --user`
-or `easy_install --user cherrypy` , then unpack source directory or run `git clone https://github.com/vfonov/wqc.git` 
-and add the location to your PATH, or specify full path to `wqt.py` script when running
+You need cherrypy package, to install it in your own user repository (without sudo access): `pip install cherrypy --user`
+or `easy_install --user cherrypy` , then unpack source directory or run `git clone https://github.com/vfonov/wqc.git`
+and add the location to your PATH, or specify full path to `wqt.py` script when running.
 
 
 ## Command line arguments
@@ -17,11 +17,11 @@ and add the location to your PATH, or specify full path to `wqt.py` script when 
 
 ## Using:
 * Simplest case, load all jpeg files in the current directory, the output will be saved in qc_auto.csv file
-  Use web browser at the location http://127.0.0.1:8080 and do QCing. 
-  To save your results you have to press *Ctrl-C* in the terminal, the file will be saved at this stage
-  
+  Use web browser at the location http://127.0.0.1:8080 and do QCing.
+  To save your results you have to press *Ctrl-C* in the terminal, the file will be saved at this stage.
+
   ```
-  wqt.py *.jpg 
+  wqt.py *.jpg
   ```
 * Using a csv file with list of files QC:
 
@@ -33,16 +33,16 @@ and add the location to your PATH, or specify full path to `wqt.py` script when 
   ```
   wqt.py --csv qc.csv  *.jpg
   ```
-* Use a public ip, accessible from everywhere **beware** of hackers: 
+* Use a public ip, accessible from everywhere **beware** of hackers:
   you information will be open to anyone who have access to your machine over network. Also, your OS firewall might interfere:
-  
+
   ```
   wqt.py --csv qc.csv --accept
   ```
 * Launch qc tool on  a remote machine (where your files are actually located) and access it via SSH tunnel:
-  Use web browser at the location http://127.0.0.1:8080 and do QCing 
+  Use web browser at the location http://127.0.0.1:8080 and do QCing
   the qc.csv will be saved on remote machine
-  
+
   ```
-  ssh -t -L 8080:127.0.0.1:8080 your_compute_cluster.somewhere.com "wqt.py --csv qc.csv /your_mega_raid_disk/project/*/*/*.jpg" 
+  ssh -t -L 8080:127.0.0.1:8080 your_compute_cluster.somewhere.com "wqt.py --csv qc.csv /your_mega_raid_disk/project/*/*/*.jpg"
   ```
