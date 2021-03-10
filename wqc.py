@@ -47,14 +47,16 @@ class dumb_object(object):
 
     @cherrypy.expose
     def index(self):
-        return "<!DOCTYPE html><html><body>Something will be here</body></html>"
+        return (
+            "<!DOCTYPE html><html><body>Something will be here</body></html>")
 
 
 @cherrypy.popargs('name')
 class Img(object):
-    def __init__(self,qc_files):
-        self.qc_files=qc_files
-        self.tempdir = tempfile.mkdtemp(prefix='QC', dir=os.environ.get('TMPDIR',None))
+    def __init__(self, qc_files):
+        self.qc_files = qc_files
+        self.tempdir = tempfile.mkdtemp(prefix='QC',
+                                        dir=os.environ.get('TMPDIR',None))
 
     def save_data(self):
         pass
@@ -62,7 +64,8 @@ class Img(object):
     @cherrypy.expose
     def index(self, name=None):
         if name is None:
-            return "<!DOCTYPE html><html><body>Images will be here</body></html>"
+            return (
+                "<!DOCTYPE html><html><body>Images will be here</body></html>")
         else:
             try:
                 #(img_name,img_ext)=name.rsplit('.',1)
@@ -80,12 +83,17 @@ class Img(object):
                     return serve_file(img_file,'image/png',None,None)
                 else:
                     cherrypy.response.status = 503
-                    return "Unsupported image file format:{}".format(finfo[0])
+                    return f"Unsupported image file format:{finfo[0]}"
             except:
-                print("Exception in index:{}".format(sys.exc_info()[0]))
+                print(f"Exception in index:{sys.exc_info()[0]}")
                 traceback.print_exc(file=sys.stdout)
                 cherrypy.response.status = 503
-                return "<!DOCTYPE html><html><body>Image {} not found!</body></html>".format(name)
+                return (
+                    "<!DOCTYPE html>"
+                    "<html>"
+                    f"<body>Image {name} not found!</body>"
+                    "</html>")
+
 
     def cleanup(self):
         if os.path.exists(self.tempdir):
@@ -123,107 +131,112 @@ class QC(object):
     def index(self, name=None,q=None,item=None):
         if name is None:
             #print("User wants to know about {}".format(name))
-            _name='0'
+            _name = '0'
         else:
-            _name=name
-        img_id=int(_name)
+            _name = name
+        img_id = int(_name)
 
         if q is not None and (name is not None or item is not None):
             # user assigned a label
-            item_id=img_id
+            item_id = img_id
             if item is not None:
-                item_id=int(item)
+                item_id = int(item)
 
-            self.qc_files[item_id][4]=q
-            print("{} - {}".format(self.qc_files[img_id][0], q))
+            self.qc_files[item_id][4] = q
+            print(f"{self.qc_files[img_id][0]} - {q}")
 
-        prev_id=""
-        prev_str=""
-        next_id=""
-        next_str=""
-        img='/img/'+str(img_id)
-        next_img=None
-
+        prev_id = ""
+        prev_str = ""
+        next_id = ""
+        next_str = ""
+        img = f"/img/{img_id}"
+        next_img = None
 
         if img_id>0:
-            prev_id=img_id-1
-            prev_str="<A href=\"/{}\" rel=\"prev\">Prev</A>".format(prev_id)
+            prev_id = img_id-1
+            prev_str = f'<a href="/{prev_id}" rel="prev">Prev</a>'
         else:
-            prev_id=img_id
+            prev_id = img_id
 
         if img_id<(len(self.qc_files)-1):
-            next_id=img_id+1
-            next_str="<A href=\"/{}\" rel=\"next\">Next</A>".format(next_id)
-            next_img='/img/'+str(next_id)
+            next_id = img_id+1
+            next_str = f'<a href="/{next_id}" rel="next">Next</a>'
+            next_img = f"/img/{next_id}"
         else:
-            next_id=img_id
+            next_id = img_id
 
-        prefetch=""
+        prefetch = ""
+
         # try to prefetch next page
         if next_img is not None:
-            prefetch+="<link rel=\"prefetch\" href=\"{img}\"><link rel=\"prefetch\" href=\"/{next_id}\">".format(img=next_img,next_id=next_id)
+            prefetch += (
+                f'<link rel="prefetch" href="{next_img}">'
+                f'<link rel="prefetch" href="/{next_id}">')
 
-        return """<!DOCTYPE html>
-<script type="text/javascript" src="/js/mousetrap.min.js"></script>
+        html_file = f"""<!DOCTYPE html>
 <html>
-    <head>
-<meta http-equiv="cache-control" content="max-age=0" />
-<meta http-equiv="cache-control" content="no-cache" />
-<meta http-equiv="expires" content="0" />
-<meta http-equiv="expires" content="Tue, 01 Jan 1980 1:00:00 GMT" />
-<meta http-equiv="pragma" content="no-cache" />
+<head>
+<meta http-equiv="cache-control" content="max-age=0">
+<meta http-equiv="cache-control" content="no-cache">
+<meta http-equiv="expires" content="0">
+<meta http-equiv="expires" content="Tue, 01 Jan 1980 1:00:00 GMT">
+<meta http-equiv="pragma" content="no-cache">
+<script type="text/javascript" src="/js/mousetrap.min.js"></script>
 <script type="text/javascript">
-(function () {{
-            Mousetrap.bind('1', function() {{ window.location.href=\"{url_pass}\"; }});
-            Mousetrap.bind('2', function() {{ window.location.href=\"{url_fail}\"; }});
-            Mousetrap.bind(['left','backspace'], function() {{ window.location.href=\"{url_prev}\"; }});
-            Mousetrap.bind(['right','space'], function()    {{ window.location.href=\"{url_next}\"; }});
-            }}) ();
+    Mousetrap.bind("1", function() {{
+        window.location.href="/{next_id}?q=pass&item={_name}";
+    }});
+    Mousetrap.bind("2", function() {{
+        window.location.href="/{next_id}?q=fail&item={_name}";
+    }});
+    Mousetrap.bind(["left","backspace"], function() {{
+        window.location.href="/{prev_id}";
+    }});
+    Mousetrap.bind(["right","space"], function() {{
+        window.location.href="/{next_id}";
+    }});
 </script>
-    </head>
-    <body>
-    <table>
+</head>
+<body>
+<table>
     <tr>
-    <td></td><td align="Center">{title}</td><td></td>
+        <td></td>
+        <td align="Center">{self.qc_files[img_id][2]}</td>
+        <td></td>
     </tr>
     <tr>
-    <td>{prev_str}</td>
-    <td><img src=\"{img}\"></td>
-    <td>{next_str}{prefetch}</td>
+        <td>{prev_str}</td>
+        <td><img src="{img}"></td>
+        <td>{next_str}{prefetch}</td>
     </tr>
-    <tr><td><A href=\"{url_pass}\">(1)Pass</A></td><td align="Center">{label}</td><td><A href=\"{url_fail}\">(2)Fail</A></td></tr>
-    </table>
+    <tr>
+        <td><a href="/{next_id}?q=pass&item={_name}">(1)Pass</a></td>
+        <td align="Center">{self.qc_files[img_id][4]}</td>
+        <td><a href="/{next_id}?q=fail&item={_name}">(2)Fail</a></td>
+    </tr>
+</table>
 <h3>Shortcuts:</h3>
-    <p>
+<p>
     <ul>
-    <li> <b>&lt;-</b> or <b>bksp</b> previous </li>
-    <li> <b>-&gt;</b> or <b>space</b> next </li>
-    <li> <b>1</b> - pass+next</li>
-    <li> <b>2</b> - fail+next</li>
+        <li> <b>&lt;-</b> or <b>bksp</b> previous </li>
+        <li> <b>-&gt;</b> or <b>space</b> next </li>
+        <li> <b>1</b> - pass+next</li>
+        <li> <b>2</b> - fail+next</li>
     </ul>
-    </p>
-    </body>
-</html>
-        """.format(img=img,
-                prev_str=prev_str,
-                next_str=next_str,
-                title=self.qc_files[img_id][2],
-                label=self.qc_files[img_id][4],
-                url_pass="/"+str(next_id)+'?q=pass&item='+_name,
-                url_fail="/"+str(next_id)+'?q=fail&item='+_name,
-                url_prev='/'+str(prev_id),
-                url_next='/'+str(next_id),
-                prefetch=prefetch
-            )
+</p>
+</body>
+</html>"""
+
+        return html_file
 
     def cleanup(self):
         pass
 
 
-
 def parse_options():
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                                description='Web QC tool')
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description='Web QC tool')
 
     parser.add_argument('--debug',
                     action="store_true",
@@ -263,12 +276,14 @@ if __name__ == '__main__':
 
     if options.csv is None:
         options.csv=os.getcwd()+os.sep+'qc_auto.csv'
-        print("Warning: you didn't specify the output csv file, I will try to save output to {}".format(options.csv))
+        print("Warning: you didn't specify the output csv file, "
+              f"I will try to save output to {options.csv}")
 
     if options.csv is not None:
         try:
           with open(options.csv, 'r') as csvfile:
-            reader = csv.reader(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+            reader = csv.reader(csvfile, delimiter=',',
+                                quoting=csv.QUOTE_MINIMAL)
             for row in reader:
                 l=len(row)
                 if l<1 or l>3:
@@ -339,7 +354,7 @@ if __name__ == '__main__':
         port = cherrypy.config.get('server.socket_port','8080')
 
         if host_ip == '0.0.0.0':
-            host_ip=[ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1]
+            host_ip = [ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1]
             print("Starting server on all public addresses:")
             for i in host_ip:
                 print("\t{}:{}".format(i,port))
@@ -354,7 +369,8 @@ if __name__ == '__main__':
             qc_files[j][3]=ext
 
             if ( ext == 'mnc' or ext == 'minc') and not minc_supported:
-                print("Warning: MINC files are not supported now, install ipl.minc_tools and ipl.minc_qc")
+                print("Warning: MINC files are not supported now, "
+                      "install ipl.minc_tools and ipl.minc_qc")
 
         qc_app=QC(qc_files,options.csv)
         img_app=Img(qc_files)
